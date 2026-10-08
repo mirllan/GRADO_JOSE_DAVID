@@ -203,6 +203,39 @@
 
   .nota{ font-size: 15px; font-style: italic; color: rgba(243,230,204,0.75); margin: 10px 0 0; }
 
+  /* Confirmación de asistencia */
+  .rsvp{
+    border: 1px solid rgba(210,163,92,0.45);
+    background: rgba(0,0,0,0.35);
+    padding: 20px 16px 18px;
+  }
+  .campo{
+    width: 100%;
+    padding: 13px 12px;
+    margin-bottom: 12px;
+    background: rgba(243,230,204,0.05);
+    border: 1px solid rgba(210,163,92,0.5);
+    color: var(--crema);
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 17px;
+    font-weight: 500;
+    -webkit-appearance: none;
+    appearance: none;
+    border-radius: 0;
+  }
+  .campo::placeholder{ color: rgba(243,230,204,0.45); }
+  .campo:focus{ outline: none; border-color: var(--dorado-claro); background: rgba(243,230,204,0.09); }
+  .btn:disabled{ opacity: 0.6; cursor: default; filter: none; }
+  .aviso{ font-size: 15px; font-style: italic; color: #E8A898; min-height: 18px; margin: 10px 0 0; }
+  .gracias{ display: none; }
+  .gracias .check{
+    width: 52px; height: 52px; margin: 0 auto 12px;
+    border: 1px solid var(--dorado); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px; color: var(--dorado-claro);
+  }
+  .gracias p{ font-size: 18px; line-height: 1.5; margin: 0; color: var(--crema); }
+
   @media (max-width: 370px){
     .invitacion{ padding: 30px 16px 26px; }
     .detalles{ margin: 0 -4px 6px; }
@@ -399,6 +432,22 @@
   </div>
 
   <section class="seccion">
+    <div class="etiqueta">CONFIRMA TU ASISTENCIA</div>
+    <div class="rsvp">
+      <form id="formRsvp" novalidate>
+        <input type="text" id="rsvpNombre" class="campo" placeholder="Nombre completo" autocomplete="name" maxlength="80">
+        <input type="tel" id="rsvpTelefono" class="campo" placeholder="Teléfono" autocomplete="tel" inputmode="numeric" maxlength="15">
+        <button type="submit" id="btnAsisto" class="btn">ASISTO</button>
+        <p class="aviso" id="avisoRsvp" role="alert"></p>
+      </form>
+      <div class="gracias" id="graciasRsvp">
+        <div class="check">&#10003;</div>
+        <p id="textoGracias"></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="seccion">
     <div class="etiqueta">CÓMO LLEGAR</div>
     <iframe class="mapa" title="Mapa del lugar del evento" loading="lazy" referrerpolicy="no-referrer-when-downgrade"
       src="https://www.google.com/maps?q=4.6858783,-74.0735168&z=16&hl=es&output=embed"></iframe>
@@ -439,6 +488,58 @@
   ajustarNombre();
   window.addEventListener("resize", ajustarNombre);
   if(document.fonts) document.fonts.ready.then(ajustarNombre);
+
+  // Confirmación de asistencia: envía un correo con nombre, teléfono y hora (vía FormSubmit)
+  const CORREO_CONFIRMACIONES = "sandysanchez393@gmail.com";
+  const telefonoRsvp = document.getElementById('rsvpTelefono');
+  telefonoRsvp.addEventListener('input', function(){ this.value = this.value.replace(/\D/g, ""); });
+
+  document.getElementById('formRsvp').addEventListener('submit', function(e){
+    e.preventDefault();
+    const nombre = document.getElementById('rsvpNombre').value.trim();
+    const telefono = telefonoRsvp.value.trim();
+    const aviso = document.getElementById('avisoRsvp');
+    const boton = document.getElementById('btnAsisto');
+
+    if(nombre.length < 3){ aviso.textContent = "Por favor escribe tu nombre completo."; return; }
+    if(telefono.length < 7){ aviso.textContent = "Por favor escribe un teléfono válido."; return; }
+    aviso.textContent = "";
+
+    const hora = new Date().toLocaleString("es-CO", {
+      timeZone: "America/Bogota",
+      weekday: "long", day: "numeric", month: "long", year: "numeric",
+      hour: "numeric", minute: "2-digit", hour12: true
+    });
+
+    boton.disabled = true;
+    boton.textContent = "ENVIANDO...";
+
+    fetch("https://formsubmit.co/ajax/" + CORREO_CONFIRMACIONES, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Accept": "application/json" },
+      body: JSON.stringify({
+        "Nombre completo": nombre,
+        "Teléfono": telefono,
+        "Hora de confirmación": hora,
+        _subject: nombre + " confirmó su asistencia al grado de José David",
+        _template: "table",
+        _captcha: "false"
+      })
+    })
+      .then(function(res){ return res.json().then(function(d){ return res.ok && String(d.success) === "true"; }); })
+      .then(function(ok){
+        if(!ok) throw new Error();
+        document.getElementById('formRsvp').style.display = "none";
+        document.getElementById('textoGracias').textContent =
+          "¡Gracias, " + nombre + "! Tu asistencia quedó confirmada. Te esperamos el sábado 24 de octubre a las 6:30 PM.";
+        document.getElementById('graciasRsvp').style.display = "block";
+      })
+      .catch(function(){
+        aviso.textContent = "No se pudo enviar. Revisa tu conexión e inténtalo de nuevo.";
+        boton.disabled = false;
+        boton.textContent = "ASISTO";
+      });
+  });
 
   // Puntitos dorados de fondo (afuera y dentro de la tarjeta)
   function sembrarPuntos(contenedor, cantidad){
