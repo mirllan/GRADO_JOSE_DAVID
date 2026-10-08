@@ -126,7 +126,8 @@
 
   .nombre{
     font-weight: 700;
-    font-size: clamp(25px, 7vw, 33px);
+    font-size: 30px;
+    white-space: nowrap;
     letter-spacing: 1px;
     line-height: 1.15;
     margin: 4px 0 0;
@@ -351,7 +352,7 @@
   <div class="divisor" aria-hidden="true"><span></span><svg><use href="#flor"/></svg><span></span></div>
 
   <p class="script oro">de nuestro hijo:</p>
-  <h2 class="nombre oro">JOSÉ DAVID SACRISTÁN<br>HURTADO</h2>
+  <h2 class="nombre oro" id="nombre">JOSÉ DAVID SACRISTÁN HURTADO</h2>
 
   <div class="clase">
     <svg aria-hidden="true"><use href="#laurel"/></svg>
@@ -424,6 +425,20 @@
   document.querySelectorAll('.whatsapp').forEach(function(a){
     a.href = "https://wa.me/" + a.dataset.tel + "?text=" + encodeURIComponent(MENSAJE_WHATSAPP);
   });
+
+  // Ajusta el tamaño del nombre para que quepa siempre en una sola línea
+  function ajustarNombre(){
+    const el = document.getElementById("nombre");
+    let tam = 30;
+    el.style.fontSize = tam + "px";
+    while(el.scrollWidth > el.clientWidth && tam > 12){
+      tam -= 0.5;
+      el.style.fontSize = tam + "px";
+    }
+  }
+  ajustarNombre();
+  window.addEventListener("resize", ajustarNombre);
+  if(document.fonts) document.fonts.ready.then(ajustarNombre);
 
   // Puntitos dorados de fondo (afuera y dentro de la tarjeta)
   function sembrarPuntos(contenedor, cantidad){
